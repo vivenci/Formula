@@ -30,7 +30,7 @@ e.g.2:
   
   Formula f = new Formula(exp, paras);
   
-  var func = f.GetFunc<CustomFormulaFunction>();
+  var func = f.GetFunc< CustomFormulaFunction>();
   
   double ret = (double)func(1, 2, 4);
   
