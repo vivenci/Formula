@@ -5,6 +5,7 @@ Written in 2019 by zyx <zyx@acortinfo.com>
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -122,222 +123,215 @@ namespace aco.tools.Formula
             int i = 0;
             while (i < exp.Length)
             {
-                char c = exp[i];
-                //参数
-                if (c == 'x')
+                try
                 {
-                    //判断参数,最多支持999个参数(x1-x999)
-                    string sub = string.Empty;
-                    if (exp.Length > i + 3)
+                    char c = exp[i];
+                    //参数
+                    if (c == 'x')
                     {
-                        sub = exp.Substring(i, 4);
-                    }
-                    else
-                    {
-                        sub = exp.Substring(i);
-                    }
-                    bool f = eMgr.CheckPara(ref sub);
-                    if (f)
-                    {
-                        i = i + sub.Length - 1;
-                        int xi = Convert.ToInt32(sub.Remove(0, 1));
-                        var p = this.Params.ElementAt(xi - 1);
-
-                        if (eMgr.Current == null)
+                        //判断参数,最多支持999个参数(x1-x999)
+                        string sub = string.Empty;
+                        if (exp.Length > i + 3)
                         {
-                            eMgr.Temp = p;
+                            sub = exp.Substring(i, 4);
                         }
                         else
                         {
-                            if (eMgr.Current.LeftLeaf == null)
+                            sub = exp.Substring(i);
+                        }
+                        bool f = eMgr.CheckPara(ref sub);
+                        if (f)
+                        {
+                            i = i + sub.Length - 1;
+                            int xi = Convert.ToInt32(sub.Remove(0, 1));
+                            var p = this.Params.ElementAt(xi - 1);
+
+                            if (eMgr.Current == null)
                             {
-                                eMgr.Current.LeftLeaf = p;
+                                eMgr.Temp = p;
                             }
                             else
                             {
-                                eMgr.Current.RightLeaf = p;
+                                if (eMgr.Current.LeftLeaf == null)
+                                {
+                                    eMgr.Current.LeftLeaf = p;
+                                }
+                                else
+                                {
+                                    eMgr.Current.RightLeaf = p;
+                                }
                             }
-                        }
 
-                    }
-                    else
-                    {
-                        throw new ArgumentException("参数格式错误.(支持的参数格式为:[x1-x999])");
-                    }
-                }
-                //数字
-                else if (nums.Contains(c))
-                {
-                    int nLen = 1;
-                    double d = eMgr.CheckNumber(exp.Substring(i), ref nLen);
-                    if (double.IsNaN(d))
-                    {
-                        throw new ArgumentException("表达式解析错误:未匹配到数字");
-                    }
-                    else
-                    {
-                        i = i + nLen - 1;
-                        var numExp = Expression.Constant(d, typeof(double));
-
-                        if (eMgr.Current == null)
-                        {
-                            eMgr.Temp = numExp;
                         }
                         else
                         {
-                            if (eMgr.Current.LeftLeaf == null)
+                            throw new ArgumentException("参数格式错误.(支持的参数格式为:[x1-x999])");
+                        }
+                    }
+                    //数字
+                    else if (nums.Contains(c))
+                    {
+                        int nLen = 1;
+                        double d = eMgr.CheckNumber(exp.Substring(i), ref nLen);
+                        if (double.IsNaN(d))
+                        {
+                            throw new ArgumentException("表达式解析错误:未匹配到数字");
+                        }
+                        else
+                        {
+                            i = i + nLen - 1;
+                            var numExp = Expression.Constant(d, typeof(double));
+
+                            if (eMgr.Current == null)
                             {
-                                eMgr.Current.LeftLeaf = numExp;
+                                eMgr.Temp = numExp;
                             }
                             else
                             {
-                                eMgr.Current.RightLeaf = numExp;
+                                if (eMgr.Current.LeftLeaf == null)
+                                {
+                                    eMgr.Current.LeftLeaf = numExp;
+                                }
+                                else
+                                {
+                                    eMgr.Current.RightLeaf = numExp;
+                                }
                             }
-                        }
 
+                        }
                     }
-                }
 
-                //以下为运算符
-                else if (c.Equals('+'))
-                {
-                    IOperator op = new AddOperator();
-                    if (eMgr.Current == null)
+                    //以下为运算符
+                    else if (c.Equals('+'))
                     {
-                        eMgr.SetCurrent(op);
-                    }
-                    eMgr.Update(op);
-                }
-                else if (c.Equals('-'))
-                {
-                    IOperator op = null;
-                    if (eMgr.Current == null)
-                    {
-                        eMgr.SetCurrent(eMgr.NodeSecond);
-                        if (eMgr.Current.LeftLeaf != null || eMgr.Temp != null)
-                        {
-                            op = new SubtractOperator();
-                        }
-                        else
-                        {
-                            op = new NegateOperator();
-                        }
-                    }
-                    else
-                    {
-                        op = new SubtractOperator();
-                    }
-                    eMgr.Update(op);
-                }
-                else if (c.Equals('*'))
-                {
-                    IOperator op = new MultiplyOperator();
-                    if (eMgr.Current == null)
-                    {
-                        eMgr.SetCurrent(op);
-                    }
-                    eMgr.Update(op);
-                }
-                else if (c.Equals('/'))
-                {
-                    IOperator op = new DivideOperator();
-                    if (eMgr.Current == null)
-                    {
-                        eMgr.SetCurrent(op);
-                    }
-                    eMgr.Update(op);
-                }
-                else if (c.Equals('^'))
-                {
-                    IOperator op = new PowerOperator();
-                    if (eMgr.Current == null)
-                    {
-                        eMgr.SetCurrent(op);
-                    }
-                    eMgr.Update(op);
-                }
-                //括号处理
-                else if (c.Equals('('))
-                {
-                    int bLen = 1;
-                    string bExp = string.Empty;
-                    string sub = exp.Substring(i);
-                    for (int j = 1; j < sub.Length; j++)
-                    {
-                        char bc = sub[j];
-                        if (bc.Equals('('))
-                        {
-                            bLen++;
-                        }
-                        else if (bc.Equals(')'))
-                        {
-                            bLen--;
-                        }
-                        if (bLen == 0)
-                        {
-                            bExp = sub.Substring(1, j - 1);
-                            break;
-                        }
-                    }
-                    i = i + bExp.Length + 1;
-                    //计算出括号内的结果,且归并入当前节点
-                    Expression subExp = Parse(bExp);
-                    eMgr.Update(subExp);
-                }
-                //比较字符
-                else if (c.Equals('<') || c.Equals('>') || c.Equals('=') || c.Equals('!'))
-                {
-                    IOperator op = null;
-                    int cLen = eMgr.CheckComparisonCharacter(exp.Substring(i, 2), ref op);
-                    if (op != null)
-                    {
+                        IOperator op = new AddOperator();
                         if (eMgr.Current == null)
                         {
                             eMgr.SetCurrent(op);
                         }
                         eMgr.Update(op);
-                        i = i + cLen - 1;
                     }
+                    else if (c.Equals('-'))
+                    {
+                        IOperator op = null;
+                        if (eMgr.Current == null)
+                        {
+                            eMgr.SetCurrent(eMgr.NodeSecond);
+                            if (eMgr.Current.LeftLeaf != null || eMgr.Temp != null)
+                            {
+                                op = new SubtractOperator();
+                            }
+                            else
+                            {
+                                op = new NegateOperator();
+                            }
+                        }
+                        else
+                        {
+                            op = new SubtractOperator();
+                        }
+                        eMgr.Update(op);
+                    }
+                    else if (c.Equals('*'))
+                    {
+                        IOperator op = new MultiplyOperator();
+                        if (eMgr.Current == null)
+                        {
+                            eMgr.SetCurrent(op);
+                        }
+                        eMgr.Update(op);
+                    }
+                    else if (c.Equals('/'))
+                    {
+                        IOperator op = new DivideOperator();
+                        if (eMgr.Current == null)
+                        {
+                            eMgr.SetCurrent(op);
+                        }
+                        eMgr.Update(op);
+                    }
+                    else if (c.Equals('^'))
+                    {
+                        IOperator op = new PowerOperator();
+                        if (eMgr.Current == null)
+                        {
+                            eMgr.SetCurrent(op);
+                        }
+                        eMgr.Update(op);
+                    }
+                    //括号处理
+                    else if (c.Equals('('))
+                    {
+                        int bLen = 1;
+                        string bExp = string.Empty;
+                        string sub = exp.Substring(i);
+                        for (int j = 1; j < sub.Length; j++)
+                        {
+                            char bc = sub[j];
+                            if (bc.Equals('('))
+                            {
+                                bLen++;
+                            }
+                            else if (bc.Equals(')'))
+                            {
+                                bLen--;
+                            }
+                            if (bLen == 0)
+                            {
+                                bExp = sub.Substring(1, j - 1);
+                                break;
+                            }
+                        }
+                        i = i + bExp.Length + 1;
+                        //计算出括号内的结果,且归并入当前节点
+                        Expression subExp = Parse(bExp);
+
+                        if ((eMgr.Current == null) && exp[i].Equals(')'))
+                        {
+                            eMgr.Temp = subExp;
+                        }
+                        else
+                        {
+                            eMgr.Update(subExp);
+                        }
+                    }
+                    //比较字符
+                    else if (c.Equals('<') || c.Equals('>') || c.Equals('=') || c.Equals('!'))
+                    {
+                        IOperator op = null;
+                        int cLen = eMgr.CheckComparisonCharacter(exp.Substring(i, 2), ref op);
+                        if (op != null)
+                        {
+                            if (eMgr.Current == null)
+                            {
+                                eMgr.SetCurrent(op);
+                            }
+                            eMgr.Update(op);
+                            i = i + cLen - 1;
+                        }
+                    }
+                    i++;
                 }
-                i++;
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(string.Format("当前字符串为:{0}", exp));
+                    Trace.WriteLine(string.Format("在第{0}个字符{1}处出错.", i, exp[i]));
+                    throw;
+                }
+
             }
             //最终合并运算节点
             eMgr.MergeNode();
-            return eMgr.Current.GetResult();
+
+            if (eMgr.IsSingle())
+            {
+                return eMgr.Temp;
+            }
+            else
+            {
+                return eMgr.Current.GetResult();
+            }
         }
-
-
-        //private FormulaFunction InitFunc()
-        //{
-        //    Expression<FormulaFunction> cmpExp = null;
-        //    try
-        //    {
-
-        //        //var p1 = Expression.Parameter(typeof(double), "x0");
-        //        //var p2 = Expression.Parameter(typeof(double), "x1");
-        //        //return Expression.Lambda<FormulaFunction>(this.Expression, p1).Compile();
-        //        //cmpExp = Expression.Lambda<FormulaFunction>(this.Expression, this.Params.Cast<ParameterExpression>());
-        //        int cnt = 4;
-        //        var paras = Enumerable.Range(0, cnt).Select(i => Expression.Variable(typeof(double), "x" + i)).ToArray();
-        //        var exp = Expression.Add(Expression.Add(paras[0], Expression.Constant(Convert.ToDouble(2), typeof(double))), Expression.Multiply(paras[1], Expression.Subtract(paras[2], Expression.Divide(paras[3], Expression.Constant(Convert.ToDouble(2), typeof(double))))));
-        //        var ef1 = Expression.Lambda<FormulaFunction>(exp, paras);
-        //        var f1 = ef1.Compile();
-        //        double ret1 = f1(1, 2, 3, 4);
-
-        //        var exp2 = Expression.Add(paras[0], Expression.Constant(Convert.ToDouble(2), typeof(double)));
-        //        var ef2 = Expression.Lambda<FormulaFunction>(exp2, paras);
-        //        var f2 = ef2.Compile();
-        //        double ret2 = f2(5);
-
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new ArgumentException("给定表达式参数数目与目标参数列表数目不符.");
-        //    }
-
-        //    return cmpExp.Compile();
-        //}
 
     }
 }

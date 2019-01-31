@@ -37,6 +37,16 @@ namespace aco.tools.Formula
         }
 
         /// <summary>
+        /// 当前运算的暂存结果
+        /// (用于保存已完成的()内的子运算结果)
+        /// </summary>
+        public Expression CurrentResult
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// 当前运算节点
         /// </summary>
         public ExpressionNode Current
@@ -100,6 +110,18 @@ namespace aco.tools.Formula
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// 单数字判定
+        /// </summary>
+        public bool IsSingle()
+        {
+            if (this.Current == null && this.NewOperator == null && this.Temp != null)
+            {
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
