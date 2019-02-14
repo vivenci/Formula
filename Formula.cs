@@ -10,41 +10,158 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using aco.common;
 
-namespace aco.tools.Formula
+namespace aco.tools.NFormula
 {
     public class Formula
     {
-        //定义计算表达式的相关方法
-        public delegate object FormulaFunction(double a1, double a2 = 0, double a3 = 0, double a4 = 0, double a5 = 0, double a6 = 0, double a7 = 0, double a8 = 0, double a9 = 0, double a10 = 0, double a11 = 0, double a12 = 0, double a13 = 0, double a14 = 0, double a15 = 0, double a16 = 0, double a17 = 0, double a18 = 0, double a19 = 0, double a20 = 0);
         private char[] nums = new char[10];
+        private readonly string DEFAULT_FORMULA_NAME = "Formula1";
+        //定义计算表达式的相关方法
+        public delegate object FormulaFunction(double a1 = 0, double a2 = 0, double a3 = 0, double a4 = 0, double a5 = 0, double a6 = 0, double a7 = 0, double a8 = 0, double a9 = 0, double a10 = 0, double a11 = 0, double a12 = 0, double a13 = 0, double a14 = 0, double a15 = 0, double a16 = 0, double a17 = 0, double a18 = 0, double a19 = 0, double a20 = 0);
+        public delegate object NoParamFunction();
 
         public Formula()
         {
             nums = "0123456789".ToArray();
+            Name = DEFAULT_FORMULA_NAME;
         }
 
+        /// <summary>
+        /// 使用指定字符串作为目标表达式构建公式
+        /// </summary>
+        /// <param name="expStr">表达式字符串</param>
         public Formula(string expStr) : this()
         {
             this.Params = Enumerable.Range(0, 20).Select(i => Expression.Variable(typeof(double), "x" + (i + 1))).ToArray();
             this.Expression = this.Parse(expStr);
         }
 
+        /// <summary>
+        /// 使用指定字符串作为目标表达式构建公式
+        /// </summary>
+        /// <param name="expStr">表达式字符串</param>
+        /// <param name="fName">公式名称</param>
+        public Formula(string expStr, string fName) : this(expStr)
+        {
+            this.Name = fName;
+            this.Params = Enumerable.Range(0, 20).Select(i => Expression.Variable(typeof(double), "x" + (i + 1))).ToArray();
+            this.Expression = this.Parse(expStr);
+        }
+
+        /// <summary>
+        /// 使用指定字符串作为目标表达式构建公式
+        /// </summary>
+        /// <param name="expStr">表达式字符串</param>
+        /// <param name="paras">参数列表</param>
         public Formula(string expStr, IEnumerable<ParameterExpression> paras) : this()
         {
             this.Params = paras;
             this.Expression = this.Parse(expStr);
         }
 
-        public Formula(string expStr, int paramCnt) : this(expStr)
+        /// <summary>
+        /// 使用指定字符串作为目标表达式构建公式
+        /// </summary>
+        /// <param name="expStr">表达式字符串</param>
+        /// <param name="fName">公式名称</param>
+        /// <param name="paras">参数列表</param>
+        public Formula(string expStr, string fName, IEnumerable<ParameterExpression> paras) : this()
         {
-            this.Params = Enumerable.Range(0, paramCnt).Select(i => Expression.Variable(typeof(double), "x" + (i + 1))).ToArray();
+            this.Name = fName;
+            this.Params = paras;
+            this.Expression = this.Parse(expStr);
+        }
+
+        #region 直接传递表达式构造,适用于无后期传递参数情况
+        /// <summary>
+        /// 使用指定表达式构建公式
+        /// </summary>
+        /// <param name="exp">表达式</param>
+        public Formula(Expression exp)
+        {
+            this.Name = DEFAULT_FORMULA_NAME;
+            this.Expression = exp;
+        }
+
+        /// <summary>
+        /// 使用指定表达式构建公式
+        /// </summary>
+        /// <param name="exp">表达式</param>
+        /// <param name="fName">公式名称</param>
+        public Formula(Expression exp, string fName) : this(exp)
+        {
+            this.Name = DEFAULT_FORMULA_NAME;
+        }
+        #endregion
+
+        #region 条件公式
+
+        /// <summary>
+        /// 根据备选表达式列表,条件列表和判定规则构建公式
+        /// </summary>
+        /// <param name="optionExps">表达式字符串列表</param>
+        /// <param name="conditions">条件列表</param>
+        /// <param name="rule">判定规则</param>
+        public Formula(List<string> optionExps, List<Condition> conditions, Rule rule)
+        {
+            this.OptionExpressions = new List<Expression>();
+            this.Conditions = conditions;
+            this.Rule = rule;
+            this.Name = DEFAULT_FORMULA_NAME;
+        }
+
+        /// <summary>
+        /// 根据备选表达式列表,条件列表和判定规则构建公式
+        /// </summary>
+        /// <param name="optionExps">表达式字符串列表</param>
+        /// <param name="conditions">条件列表</param>
+        /// <param name="rule">判定规则</param>
+        /// <param name="fName">公式名称</param>
+        public Formula(List<string> optionExps, List<Condition> conditions, Rule rule, string fName) : this(optionExps, conditions, rule)
+        {
+            this.Name = fName;
+        }
+        #endregion
+
+        public string Name
+        {
+            get;
+            set;
         }
 
         /// <summary>
         /// 目标表达式
         /// </summary>
         public Expression Expression
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// 目标表达式备选列表
+        /// </summary>
+        public List<Expression> OptionExpressions
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// 备选表达式条件列表
+        /// </summary>
+        public List<Condition> Conditions
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// 备选表达式判定规则
+        /// </summary>
+        public Rule Rule
         {
             get;
             private set;
@@ -74,6 +191,18 @@ namespace aco.tools.Formula
         }
 
         /// <summary>
+        /// 返回默认无参数表达式函数构建对象
+        /// </summary>
+        /// <returns>默认无参数表达式函数构建对象</returns>
+        public NoParamFunction GetNoParamFunc()
+        {
+            var cvtExp = Expression.Convert(this.Expression, typeof(object));
+            var ef = Expression.Lambda<NoParamFunction>(cvtExp);
+            var fun = ef.Compile();
+            return fun;
+        }
+
+        /// <summary>
         /// 返回自定义输入输出的表达式函数构建对象
         /// </summary>
         /// <typeparam name="T">自定义委托类型</typeparam>
@@ -87,6 +216,30 @@ namespace aco.tools.Formula
         }
 
         /// <summary>
+        /// 获取委托
+        /// (与GetFunc类似,但未指定委托参数与范围值类型,可动态构造)
+        /// </summary>
+        /// <returns>表达式对应的委托</returns>
+        public Delegate GetDelegate()
+        {
+            LambdaExpression le = Expression.Lambda(this.Expression, this.Params);
+            Delegate de = le.Compile();
+            return de;
+        }
+
+        /// <summary>
+        /// 返回指定参数数组对应的运算结果
+        /// </summary>
+        /// <param name="args">实参数组</param>
+        /// <returns>表达式运算结果</returns>
+        public object GetResult(object[] args)
+        {
+            LambdaExpression le = Expression.Lambda(this.Expression, this.Params);
+            Delegate de = le.Compile();
+            return de.DynamicInvoke(args);
+        }
+
+        /// <summary>
         /// 创建并返回包含指定数目的参数枚举对象
         /// </summary>
         /// <param name="paraCnt">指定的参数数目</param>
@@ -94,6 +247,11 @@ namespace aco.tools.Formula
         public static IEnumerable<ParameterExpression> CreateParams(int paraCnt)
         {
             return Enumerable.Range(0, paraCnt).Select(i => Expression.Variable(typeof(double), "x" + (i + 1))).ToArray();
+        }
+
+        public void AddPara(string pName)
+        {
+            this.Params = this.Params.Add(Expression.Variable(typeof(double), pName));
         }
 
         /// <summary>

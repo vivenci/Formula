@@ -9,7 +9,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace aco.tools.Formula
+namespace aco.tools.NFormula
 {
     /// <summary>
     /// 表达式节点类

@@ -10,7 +10,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace aco.tools.Formula
+namespace aco.tools.NFormula
 {
     /// <summary>
     /// 表达式管理类
@@ -110,6 +110,77 @@ namespace aco.tools.Formula
         {
             get;
             set;
+        }
+
+        public static Expression Apply(Expression exp, UnaryType opType = UnaryType.Negate)
+        {
+            UnaryOperator uop = null;
+            switch (opType)
+            {
+                case UnaryType.Negate:
+                    uop = new NegateOperator();
+                    break;
+                default:
+                    uop = new NegateOperator();
+                    break;
+            }
+            return uop.Apply(exp);
+        }
+
+        public static Expression Apply(Expression left, Expression right, BinaryType opType)
+        {
+            BinaryOperator bop = null;
+            switch (opType)
+            {
+                case BinaryType.Greater:
+                    bop = new GreaterOperator();
+                    break;
+                case BinaryType.GreaterEqual:
+                    bop = new GreaterEqualOperator();
+                    break;
+                case BinaryType.Less:
+                    bop = new LessOperator();
+                    break;
+                case BinaryType.LessEqual:
+                    bop = new LessEqualOperator();
+                    break;
+                case BinaryType.Equal:
+                    bop = new EqualOperator();
+                    break;
+                case BinaryType.NotEqual:
+                    bop = new NotEqualOperator();
+                    break;
+                case BinaryType.Add:
+                    bop = new AddOperator();
+                    break;
+                case BinaryType.Subtract:
+                    bop = new SubtractOperator();
+                    break;
+                case BinaryType.Multiply:
+                    bop = new MultiplyOperator();
+                    break;
+                case BinaryType.Divide:
+                    bop = new DivideOperator();
+                    break;
+                case BinaryType.Power:
+                    bop = new PowerOperator();
+                    break;
+                default:
+                    bop = new AddOperator();
+                    break;
+            }
+
+            return bop.Apply(left, right);
+        }
+
+        public static Expression Apply(Expression exp, UnaryOperator uOp)
+        {
+            return uOp.Apply(exp);
+        }
+
+        public static Expression Apply(Expression left, Expression right, BinaryOperator bOp)
+        {
+            return bOp.Apply(left, right);
         }
 
         /// <summary>
@@ -405,6 +476,13 @@ namespace aco.tools.Formula
                     this.Current = en;
                     this.NewOperator = null;
                 }
+            }
+            else if (cpr < npr)
+            {
+                this.Current.Node = nOp;
+                this.Current.LeftLeaf = data;
+                this.Current.RightLeaf = null;
+                this.NewOperator = null;
             }
         }
 

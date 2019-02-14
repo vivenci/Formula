@@ -9,7 +9,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace aco.tools.Formula
+namespace aco.tools.NFormula
 {
     /// <summary>
     /// 操作运算符
@@ -244,7 +244,6 @@ namespace aco.tools.Formula
             }
         }
 
-
         public override Expression Apply(Expression left, Expression right)
         {
             return Expression.Divide(left, right);
@@ -271,6 +270,26 @@ namespace aco.tools.Formula
     {
         Unary,
         Binary
+    }
+
+    public enum UnaryType
+    {
+        Negate
+    }
+
+    public enum BinaryType
+    {
+        Greater,
+        GreaterEqual,
+        Less,
+        LessEqual,
+        Equal,
+        NotEqual,
+        Add,
+        Subtract,
+        Multiply,
+        Divide,
+        Power
     }
 
     public enum PriorityType
