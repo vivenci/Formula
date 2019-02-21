@@ -11,10 +11,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using aco.common;
+using aco.tools.Algorithm.PSO;
 
 namespace aco.tools.NFormula
 {
-    public class Formula
+    public class Formula : IVerification
     {
         private char[] nums = new char[10];
         private readonly string DEFAULT_FORMULA_NAME = "Formula1";
@@ -26,6 +27,7 @@ namespace aco.tools.NFormula
         {
             nums = "0123456789".ToArray();
             Name = DEFAULT_FORMULA_NAME;
+            this.ExtraParams = new Dictionary<string, UnionParameter>();
         }
 
         /// <summary>
@@ -179,6 +181,31 @@ namespace aco.tools.NFormula
         }
 
         /// <summary>
+        /// 额外参数字典
+        /// [key]:额外参数的名称
+        /// [value]:额外参数对应的表达式
+        /// </summary>
+        public Dictionary<string, UnionParameter> ExtraParams
+        {
+            get;
+            private set;
+        }
+
+        public override bool EnableAfterAction
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override ResultType ResultType
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// 返回默认表达式函数构建对象
         /// </summary>
         /// <returns>默认表达式函数构建对象</returns>
@@ -232,11 +259,33 @@ namespace aco.tools.NFormula
         /// </summary>
         /// <param name="args">实参数组</param>
         /// <returns>表达式运算结果</returns>
-        public object GetResult(object[] args)
+        public override object GetResult(object[] args)
         {
+            List<object> argList = new List<object>();
+            argList.AddRange(args);
+            if (args.Length < this.Params.Count())
+            {
+                for (int i = 0; i < this.Params.Count(); i++)
+                {
+                    var p = this.Params.ElementAt(i);
+                    if (this.ExtraParams.ContainsKey(p.Name))
+                    {
+                        var up = this.ExtraParams[p.Name];
+
+                        object epRet = up.GetResult(args);
+                        argList.Add(epRet);
+                    }
+                }
+            }
+
             LambdaExpression le = Expression.Lambda(this.Expression, this.Params);
             Delegate de = le.Compile();
-            return de.DynamicInvoke(args);
+            return de.DynamicInvoke(argList.ToArray());
+        }
+
+        public override bool AfterAction(object obj)
+        {
+            return false;
         }
 
         /// <summary>
@@ -247,11 +296,6 @@ namespace aco.tools.NFormula
         public static IEnumerable<ParameterExpression> CreateParams(int paraCnt)
         {
             return Enumerable.Range(0, paraCnt).Select(i => Expression.Variable(typeof(double), "x" + (i + 1))).ToArray();
-        }
-
-        public void AddPara(string pName)
-        {
-            this.Params = this.Params.Add(Expression.Variable(typeof(double), pName));
         }
 
         /// <summary>

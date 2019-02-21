@@ -27,6 +27,13 @@ namespace aco.tools.NFormula
             this.Index = idx;
         }
 
+        public ExpressionNode(Expression left, Expression right, IOperator node)
+        {
+            this.LeftLeaf = left;
+            this.RightLeaf = right;
+            this.Node = node;
+        }
+
         public Expression LeftLeaf
         {
             get;
@@ -49,6 +56,16 @@ namespace aco.tools.NFormula
         {
             get;
             set;
+        }
+
+        public static ExpressionNode EmptyInstance
+        {
+            get
+            {
+                ExpressionNode en = new ExpressionNode();
+                en.Empty();
+                return en;
+            }
         }
 
         /// <summary>
@@ -126,6 +143,42 @@ namespace aco.tools.NFormula
             this.Node = null;
         }
 
+        public bool IsEmpty()
+        {
+            if (this.LeftLeaf == null && this.RightLeaf == null && this.Node == null)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 连接节点
+        /// </summary>
+        /// <param name="node2">要连接的节点</param>
+        /// <returns>连接之后的节点</returns>
+        public ExpressionNode Link(ExpressionNode node2)
+        {
+            if (this == null || this.IsEmpty())
+            {
+                return node2;
+            }
+            else if (node2 == null || node2.IsEmpty())
+            {
+                return this;
+            }
+            else
+            {
+                ExpressionNode nNode = new ExpressionNode();
+                nNode.LeftLeaf = this.GetResult();
+                node2.RightLeaf = node2.GetResult();
+                return nNode;
+            }
+        }
+
         /// <summary>
         /// 连接节点
         /// </summary>
@@ -134,11 +187,27 @@ namespace aco.tools.NFormula
         /// <returns>连接之后获得的节点</returns>
         public ExpressionNode Link(ExpressionNode node2, IOperator op)
         {
-            ExpressionNode nNode = new ExpressionNode();
-            nNode.LeftLeaf = this.GetResult();
-            nNode.RightLeaf = node2.GetResult();
-            nNode.Node = op;
-            return nNode;
+            if (this == null || this.IsEmpty())
+            {
+                return node2;
+            }
+            else if (node2 == null || node2.IsEmpty())
+            {
+                return this;
+            }
+            else
+            {
+                ExpressionNode nNode = new ExpressionNode();
+                nNode.LeftLeaf = this.GetResult();
+                nNode.RightLeaf = node2.GetResult();
+                nNode.Node = op;
+                return nNode;
+            }
+        }
+
+        public static Expression Const<T>(object val) where T : IComparable<T>, IEquatable<T>
+        {
+            return Expression.Constant(val, typeof(T));
         }
 
         /// <summary>
