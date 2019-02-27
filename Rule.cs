@@ -163,15 +163,16 @@ namespace aco.tools.NFormula
         /// <summary>
         /// 验证是否满足规则
         /// </summary>
+        /// <param name="paras">参数数组</param>
         /// <returns>是否满足规则</returns>
-        public bool IsValid()
+        public bool IsValid(object[] paras = null)
         {
             bool valid = true;
-            if (this.dict != null && dict.Count > 0)
+            if (this != null && this.Count > 0)
             {
-                foreach (var d in dict)
+                foreach (var d in this)
                 {
-                    if (d.Key.Satisfy != d.Value)
+                    if (d.Key.Satisfy(paras) != d.Value)
                     {
                         valid = false;
                         break;

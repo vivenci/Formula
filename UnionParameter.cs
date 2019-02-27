@@ -11,13 +11,27 @@ namespace aco.tools.NFormula
     /// </summary>
     public class UnionParameter
     {
-        public UnionParameter(string pName, IEnumerable<ParameterExpression> paras)
+        /// <summary>
+        /// 构造组合参数
+        /// </summary>
+        /// <param name="pName">组合参数名称</param>
+        /// <param name="paras">子参数形参列表</param>
+        /// <param name="desc">组合参数描述</param>
+        public UnionParameter(string pName, IEnumerable<ParameterExpression> paras, string desc = "")
         {
             this.ParamName = pName;
             this.SubParams = paras;
+            this.Description = desc;
         }
 
-        public UnionParameter(string pName, IEnumerable<ParameterExpression> paras, Expression exp) : this(pName, paras)
+        /// <summary>
+        /// 构造组合参数
+        /// </summary>
+        /// <param name="pName">组合参数名称</param>
+        /// <param name="paras">子参数形参列表</param>
+        /// <param name="exp">组合参数表达式</param>
+        /// <param name="desc">组合参数描述</param>
+        public UnionParameter(string pName, IEnumerable<ParameterExpression> paras, Expression exp, string desc = "") : this(pName, paras, desc)
         {
             this.Expression = exp;
         }
@@ -26,6 +40,11 @@ namespace aco.tools.NFormula
         /// 组合参数名称
         /// </summary>
         public string ParamName { get; set; }
+
+        /// <summary>
+        /// 组合参数描述
+        /// </summary>
+        public string Description { get; set; }
 
         /// <summary>
         /// 组合参数表达式
@@ -37,11 +56,11 @@ namespace aco.tools.NFormula
         /// </summary>
         public IEnumerable<ParameterExpression> SubParams { get; set; }
 
-        public object GetResult(object[] args)
-        {
-            LambdaExpression le = Expression.Lambda(this.Expression, this.SubParams);
-            Delegate de = le.Compile();
-            return de.DynamicInvoke(args);
-        }
+        //public object GetResult(object[] args)
+        //{
+        //    LambdaExpression le = Expression.Lambda(this.Expression, this.SubParams);
+        //    Delegate de = le.Compile();
+        //    return de.DynamicInvoke(args);
+        //}
     }
 }

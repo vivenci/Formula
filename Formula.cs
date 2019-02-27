@@ -48,8 +48,6 @@ namespace aco.tools.NFormula
         public Formula(string expStr, string fName) : this(expStr)
         {
             this.Name = fName;
-            this.Params = Enumerable.Range(0, 20).Select(i => Expression.Variable(typeof(double), "x" + (i + 1))).ToArray();
-            this.Expression = this.Parse(expStr);
         }
 
         /// <summary>
@@ -103,28 +101,27 @@ namespace aco.tools.NFormula
         /// <summary>
         /// 根据备选表达式列表,条件列表和判定规则构建公式
         /// </summary>
-        /// <param name="optionExps">表达式字符串列表</param>
-        /// <param name="conditions">条件列表</param>
-        /// <param name="rule">判定规则</param>
-        public Formula(List<string> optionExps, List<Condition> conditions, Rule rule)
+        /// <param name="expStr">表达式字符串</param>
+        /// <param name="paras">参数列表</param>
+        /// <param name="ruleSet">判定规则</param>
+        public Formula(string expStr, IEnumerable<ParameterExpression> paras, RuleSet ruleSet) : this(expStr, paras)
         {
-            this.OptionExpressions = new List<Expression>();
-            this.Conditions = conditions;
-            this.Rule = rule;
+            this.RuleSet = ruleSet;
             this.Name = DEFAULT_FORMULA_NAME;
         }
 
         /// <summary>
         /// 根据备选表达式列表,条件列表和判定规则构建公式
         /// </summary>
-        /// <param name="optionExps">表达式字符串列表</param>
-        /// <param name="conditions">条件列表</param>
-        /// <param name="rule">判定规则</param>
+        /// <param name="expStr">表达式字符串</param>
         /// <param name="fName">公式名称</param>
-        public Formula(List<string> optionExps, List<Condition> conditions, Rule rule, string fName) : this(optionExps, conditions, rule)
+        /// <param name="paras">参数列表</param>
+        /// <param name="ruleSet">判定规则</param>
+        public Formula(string expStr, string fName, IEnumerable<ParameterExpression> paras, RuleSet ruleSet) : this(expStr, fName, paras)
         {
-            this.Name = fName;
+            this.RuleSet = ruleSet;
         }
+
         #endregion
 
         public string Name
@@ -163,7 +160,7 @@ namespace aco.tools.NFormula
         /// <summary>
         /// 备选表达式判定规则
         /// </summary>
-        public Rule Rule
+        public RuleSet RuleSet
         {
             get;
             private set;
@@ -261,26 +258,66 @@ namespace aco.tools.NFormula
         /// <returns>表达式运算结果</returns>
         public override object GetResult(object[] args)
         {
-            List<object> argList = new List<object>();
-            argList.AddRange(args);
-            if (args.Length < this.Params.Count())
+            if (this.Expression == null || this.Expression.NodeType == ExpressionType.Default)
             {
-                for (int i = 0; i < this.Params.Count(); i++)
-                {
-                    var p = this.Params.ElementAt(i);
-                    if (this.ExtraParams.ContainsKey(p.Name))
-                    {
-                        var up = this.ExtraParams[p.Name];
-
-                        object epRet = up.GetResult(args);
-                        argList.Add(epRet);
-                    }
-                }
+                return null;
             }
 
-            LambdaExpression le = Expression.Lambda(this.Expression, this.Params);
-            Delegate de = le.Compile();
-            return de.DynamicInvoke(argList.ToArray());
+            Dictionary<string, object> valDict = new Dictionary<string, object>();
+            for (int i = 0; i < args.Length; i++)
+            {
+                valDict.Add(this.Params.ElementAt(i).Name, args[i]);
+            }
+
+            //选取目标表达式
+            var dstExp = this.Expression;
+            //应用规则集
+            if (this.RuleSet != null && this.RuleSet.Count > 0)
+            {
+                var tmpExp = this.RuleSet.Apply(args);
+                //替换目标表达式
+                if (tmpExp != null)
+                {
+                    dstExp = tmpExp;
+                }
+            }
+            //获取当前表达式中的参数列表
+            var expParas = dstExp.Variables();
+            foreach (var kv in this.ExtraParams)
+            {
+                var ueParas = kv.Value.Expression.Variables();
+                var ueNames = ueParas.Select(p => p.Name);
+                var except = ueNames.Except(valDict.Keys);
+                //如果ExtraParam中所有参数都存在于参数字典中
+                if (except.Count() == 0)
+                {
+                    //找到当前ExtraParam中包含的子参数,构造数组,并找到匹配值
+                    object[] objs = new object[ueParas.Count];
+                    for (int i = 0; i < ueParas.Count; i++)
+                    {
+                        objs[i] = valDict[ueParas[i].Name];
+                    }
+                    object pval = kv.Value.Expression.Invode(ueParas, objs);
+                    //将额外参数加入参数字典
+                    valDict.Add(kv.Key, pval);
+                }
+            }
+            //找到当前Expression中包含的子参数,构造数组,并找到匹配值
+            object[] expTParas = new object[expParas.Count];
+            for (int i = 0; i < expParas.Count; i++)
+            {
+                expTParas[i] = valDict[expParas[i].Name];
+            }
+
+            try
+            {
+                var ret = this.Expression.Invode(expParas, expTParas);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         public override bool AfterAction(object obj)
