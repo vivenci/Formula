@@ -11,16 +11,19 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using aco.common;
+using aco.common.Logs;
 using aco.tools.Algorithm.PSO;
 
 namespace aco.tools.NFormula
 {
     public class Formula : IVerification
     {
+        FileLogger logger = FileLogger.Create(LoggerSetting.DefaultSystemLogName);
+
         private char[] nums = new char[10];
         private readonly string DEFAULT_FORMULA_NAME = "Formula1";
         //定义计算表达式的相关方法
-        public delegate object FormulaFunction(double a1 = 0, double a2 = 0, double a3 = 0, double a4 = 0, double a5 = 0, double a6 = 0, double a7 = 0, double a8 = 0, double a9 = 0, double a10 = 0, double a11 = 0, double a12 = 0, double a13 = 0, double a14 = 0, double a15 = 0, double a16 = 0, double a17 = 0, double a18 = 0, double a19 = 0, double a20 = 0);
+        public delegate object FormulaFunction(double a1 = 0, double a2 = 0, double a3 = 0, double a4 = 0, double a5 = 0, double a6 = 0, double a7 = 0, double a8 = 0, double a9 = 0, double a10 = 0);
         public delegate object NoParamFunction();
 
         public Formula()
@@ -124,7 +127,7 @@ namespace aco.tools.NFormula
 
         #endregion
 
-        public string Name
+        public override string Name
         {
             get;
             set;
@@ -163,7 +166,7 @@ namespace aco.tools.NFormula
         public RuleSet RuleSet
         {
             get;
-            private set;
+            set;
         }
 
         /// <summary>
@@ -283,16 +286,20 @@ namespace aco.tools.NFormula
             }
             //获取当前表达式中的参数列表
             var expParas = dstExp.Variables();
+            List<ParameterExpression> ueParas = null;
+            IEnumerable<string> ueNames = null;
+            IEnumerable<string> except = null;
+            object[] objs = null;
             foreach (var kv in this.ExtraParams)
             {
-                var ueParas = kv.Value.Expression.Variables();
-                var ueNames = ueParas.Select(p => p.Name);
-                var except = ueNames.Except(valDict.Keys);
+                ueParas = kv.Value.Expression.Variables();
+                ueNames = ueParas.Select(p => p.Name);
+                except = ueNames.Except(valDict.Keys);
                 //如果ExtraParam中所有参数都存在于参数字典中
                 if (except.Count() == 0)
                 {
                     //找到当前ExtraParam中包含的子参数,构造数组,并找到匹配值
-                    object[] objs = new object[ueParas.Count];
+                    objs = new object[ueParas.Count];
                     for (int i = 0; i < ueParas.Count; i++)
                     {
                         objs[i] = valDict[ueParas[i].Name];
@@ -316,7 +323,17 @@ namespace aco.tools.NFormula
             }
             catch (Exception ex)
             {
-                throw;
+                logger.WriteLine(ex);
+                return null;
+            }
+            finally
+            {
+                expParas = null;
+                ueParas = null;
+                ueNames = null;
+                except = null;
+                objs = null;
+                expTParas = null;
             }
         }
 

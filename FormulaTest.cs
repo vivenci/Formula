@@ -96,5 +96,6 @@ namespace aco.tools.NFormula
             IEnumerable<ParameterExpression> paras = Formula.CreateParams(4);
             Formula f = new Formula(exp, paras);
         }
+
     }
 }

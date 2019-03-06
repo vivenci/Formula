@@ -10,9 +10,9 @@ namespace aco.tools.NFormula
     public static class ExpressionE
     {
         /// <summary>
-        /// 添加指定名称的Double类型的参数
+        /// 为参数列表添加指定名称的Double类型的参数
         /// </summary>
-        /// <param name="paras">参数列表</param>
+        /// <param name="paras">要添加新项的参数列表</param>
         /// <param name="pName">添加的新参数名称</param>
         /// <returns>添加后的新参数列表</returns>
         public static IEnumerable<ParameterExpression> AddDouble(this IEnumerable<ParameterExpression> paras, string pName)
@@ -21,6 +21,12 @@ namespace aco.tools.NFormula
             return paras;
         }
 
+        /// <summary>
+        /// 为参数列表添加多个指定名称的Double类型的参数
+        /// </summary>
+        /// <param name="paras">要添加新项的参数列表</param>
+        /// <param name="pNames">添加的新参数名称参数数组</param>
+        /// <returns>添加后的新参数列表</returns>
         public static IEnumerable<ParameterExpression> AddDouble(this IEnumerable<ParameterExpression> paras, params string[] pNames)
         {
             for (int i = 0; i < pNames.Length; i++)
