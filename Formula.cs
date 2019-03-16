@@ -19,7 +19,6 @@ namespace aco.tools.NFormula
     public class Formula : IVerification
     {
         FileLogger logger = FileLogger.Create(LoggerSetting.DefaultSystemLogName);
-
         private char[] nums = new char[10];
         private readonly string DEFAULT_FORMULA_NAME = "Formula1";
         //定义计算表达式的相关方法
@@ -79,7 +78,7 @@ namespace aco.tools.NFormula
 
         #region 直接传递表达式构造,适用于无后期传递参数情况
         /// <summary>
-        /// 使用指定表达式构建公式
+        /// 使用指定表达式构建公式(无参数)
         /// </summary>
         /// <param name="exp">表达式</param>
         public Formula(Expression exp)
@@ -89,13 +88,13 @@ namespace aco.tools.NFormula
         }
 
         /// <summary>
-        /// 使用指定表达式构建公式
+        /// 使用指定表达式构建公式(无参数)
         /// </summary>
         /// <param name="exp">表达式</param>
         /// <param name="fName">公式名称</param>
         public Formula(Expression exp, string fName) : this(exp)
         {
-            this.Name = DEFAULT_FORMULA_NAME;
+            this.Name = fName;
         }
         #endregion
 
@@ -137,24 +136,6 @@ namespace aco.tools.NFormula
         /// 目标表达式
         /// </summary>
         public Expression Expression
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// 目标表达式备选列表
-        /// </summary>
-        public List<Expression> OptionExpressions
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// 备选表达式条件列表
-        /// </summary>
-        public List<Condition> Conditions
         {
             get;
             private set;
@@ -292,21 +273,28 @@ namespace aco.tools.NFormula
             object[] objs = null;
             foreach (var kv in this.ExtraParams)
             {
-                ueParas = kv.Value.Expression.Variables();
-                ueNames = ueParas.Select(p => p.Name);
-                except = ueNames.Except(valDict.Keys);
-                //如果ExtraParam中所有参数都存在于参数字典中
-                if (except.Count() == 0)
+                try
                 {
-                    //找到当前ExtraParam中包含的子参数,构造数组,并找到匹配值
-                    objs = new object[ueParas.Count];
-                    for (int i = 0; i < ueParas.Count; i++)
+                    ueParas = kv.Value.Expression.Variables();
+                    ueNames = ueParas.Select(p => p.Name);
+                    except = ueNames.Except(valDict.Keys);
+                    //如果ExtraParam中所有参数都存在于参数字典中
+                    if (except.Count() == 0)
                     {
-                        objs[i] = valDict[ueParas[i].Name];
+                        //找到当前ExtraParam中包含的子参数,构造数组,并找到匹配值
+                        objs = new object[ueParas.Count];
+                        for (int i = 0; i < ueParas.Count; i++)
+                        {
+                            objs[i] = valDict[ueParas[i].Name];
+                        }
+                        object pval = kv.Value.Expression.Invode(ueParas, objs);
+                        //将额外参数加入参数字典
+                        valDict.Add(kv.Key, pval);
                     }
-                    object pval = kv.Value.Expression.Invode(ueParas, objs);
-                    //将额外参数加入参数字典
-                    valDict.Add(kv.Key, pval);
+                }
+                catch (Exception ex)
+                {
+                    logger.WriteLine(ex);
                 }
             }
             //找到当前Expression中包含的子参数,构造数组,并找到匹配值
